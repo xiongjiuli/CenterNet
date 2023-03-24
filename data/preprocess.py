@@ -265,3 +265,14 @@ def getNiiPath(path, mode):
         files_path[file] = os.path.join(path, mode, file, file_path[0])
 
     return name_list, files_path
+
+
+if __name__ == '__main__':
+    from tqdm import tqdm
+    path = '/data/julia/data_lymph'
+
+
+    for mode in ['training', 'validation']:
+        for name in tqdm(name_list):
+            name_list, files_path = getNiiPath(path, mode)
+            info_dict = get_WHD_offset_mask(name, mode, whd=True, offset=True, mask=True)
