@@ -16,6 +16,7 @@ import os
 import random
 import torch
 import scipy.ndimage as si
+from IPython import embed
 
 # * to get the W H D map very preprocess data 
 def get_WHD_offset_mask(name, mode, whd=None, offset=None, mask=None):
@@ -27,26 +28,40 @@ def get_WHD_offset_mask(name, mode, whd=None, offset=None, mask=None):
 
     coords = df[['x', 'y', 'z']].values
     whds = df[['width', 'height', 'depth']].values
-    nii_dir = df[['path']][0]
 
-    nii_image = tio.ScalarImage(nii_dir)
+    data_npy_dir = '/data/julia/data_lymph/npy_data/resampled_clamp_norm_{}_npy/{}.npy'.format(mode, name)
+    data_npy = np.load(data_npy_dir)
 
-    whd_image = np.zeros_like(nii_image[1:])
-    offset_image = np.zeros_like(nii_image[1:])
-    mask_image = np.zeros_like(nii_image[1:])
+    w_image = np.zeros(data_npy.shape)
+    h_image = np.zeros(data_npy.shape)
+    d_image = np.zeros(data_npy.shape)
+    offset_image_w = np.zeros(data_npy.shape)
+    offset_image_h = np.zeros(data_npy.shape)
+    offset_image_d = np.zeros(data_npy.shape)
+    mask_image = np.zeros(data_npy.shape)
 
 
     if whd == True:
         for i in range(len(coords)):
             coord_int = coords[i].astype(np.int32)
-            whd_image[coord_int] = whds[i]
+            # embed()
+            # w_image[coord_int] = whds[i]
+            w_image[(coord_int[0], coord_int[1], coord_int[2])] = whds[i][0]
+            h_image[(coord_int[0], coord_int[1], coord_int[2])] = whds[i][1]
+            d_image[(coord_int[0], coord_int[1], coord_int[2])] = whds[i][2]
 
+        whd_image = np.stack([w_image, h_image, d_image])
         save_whd_dir = '/data/julia/data_lymph/npy_data/resampled_whd_{}/{}.npy'.format(mode, name)
         np.save(save_whd_dir, whd_image)
+
     if offset == True:
         for i in range(len(coords)):
             coord_int = coords[i].astype(np.int32)
-            offset_image[coord_int] = coords[i] - coord_int
+            offset_image_w[(coord_int[0], coord_int[1], coord_int[2])] = coords[i][0] - coord_int[0]
+            offset_image_h[(coord_int[0], coord_int[1], coord_int[2])] = coords[i][1] - coord_int[1]
+            offset_image_d[(coord_int[0], coord_int[1], coord_int[2])] = coords[i][2] - coord_int[2]
+
+        offset_image = np.stack([offset_image_w, offset_image_h, offset_image_d])
 
         save_offset_dir = '/data/julia/data_lymph/npy_data/resampled_offset_{}/{}.npy'.format(mode, name)
         np.save(save_offset_dir, offset_image)
@@ -54,7 +69,7 @@ def get_WHD_offset_mask(name, mode, whd=None, offset=None, mask=None):
     if mask == True:
         for i in range(len(coords)):
             coord_int = coords[i].astype(np.int32)
-            mask_image[coord_int] = 1
+            mask_image[(coord_int[0], coord_int[1], coord_int[2])] = 1
 
         save_mask_dir = '/data/julia/data_lymph/npy_data/resampled_mask_{}/{}.npy'.format(mode, name)
         np.save(save_mask_dir, mask_image)
@@ -273,6 +288,7 @@ if __name__ == '__main__':
 
 
     for mode in ['training', 'validation']:
+        name_list, files_path = getNiiPath(path, mode)
         for name in tqdm(name_list):
-            name_list, files_path = getNiiPath(path, mode)
+            
             info_dict = get_WHD_offset_mask(name, mode, whd=True, offset=True, mask=True)
