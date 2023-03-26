@@ -26,8 +26,6 @@ class lymphDataset(data.Dataset):
         self.patch_overlap = patch_overlap
 
 
-    
-
     def __getitem__(self, idx):
 
         # input 
@@ -51,7 +49,9 @@ class lymphDataset(data.Dataset):
             subject = tio.Subject(
                 image = tio.ScalarImage(tensor=image_crop.unsqueeze(0), affine=affine),
                 hmap = tio.ScalarImage(tensor=hmap_crop.unsqueeze(0), affine=affine),
-                bbox = tio.ScalarImage(tensor=bbox_crop.unsqueeze(0), affine=affine),
+                whd = tio.ScalarImage(tensor=whd_crop.unsqueeze(0), affine=affine),
+                offset = tio.ScalarImage(tensor=offset_crop.unsqueeze(0), affine=affine),
+                mask = tio.ScalarImage(tensor=mask_crop.unsqueeze(0), affine=affine),
             )
             # # augmentation
             # augmentation = tio.OneOf({
@@ -81,6 +81,7 @@ if __name__ == '__main__':
     data_type = 'training'
     size = 128
     people_list, nii_path = getNiiPath(path_root, data_type)
+    
 
 
 

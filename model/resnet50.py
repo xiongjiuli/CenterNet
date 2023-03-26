@@ -251,6 +251,7 @@ def resnet50():
 if __name__ == '__main__':
     import torch
     from IPython import embed
+
     input = torch.randn(1, 1, 128, 128, 128)
-    result = resnet50(input)
+    result = resnet50()
     embed()

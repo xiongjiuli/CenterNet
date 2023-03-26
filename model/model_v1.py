@@ -49,6 +49,7 @@ class CenterNet_Resnet50(nn.Module):
         
     def forward(self, x):
         feat = self.backbone(x)
+        embed()
         return self.head(self.decoder(feat))
     
 if __name__ == '__main__':

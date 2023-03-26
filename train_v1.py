@@ -1,19 +1,19 @@
 import torch
-from model_v5 import SegPointNet
+from data.dataloader import lymphDataset
 from tqdm import tqdm
 import numpy as np 
 import pandas as pd 
 import os
 import argparse
 import torchio as tio
-from data_v5 import lymphDataset
-from utils_v5 import *
-from valid_v5 import *
+from model.model_v1 import CenterNet_Resnet50
+from utils_v1 import *
+# from valid_v5 import *
 from IPython import embed
 import torch.utils.data as data
 import matplotlib.pyplot as plt
 from time import time
-# from valid_v5 import valid_slidewin
+from valid_v5 import valid_slidewin
 os.environ["CUDA_VISIBLE_DEVICES"] = '3, 4, 2'
 
 
@@ -39,19 +39,19 @@ def train(args):
     train_loader = data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     #valid_loader = data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
     
-    model = SegPointNet(1, 1)
+    model = CenterNet_Resnet50()
     time_1 = time()
     model = model.cuda()
     print(time() - time_1)
     model = torch.nn.parallel.DataParallel(model)#, device_ids=[2, 3, 4])
 
-    # if args.model != 'normal':
-    model_path = '/data/julia/data_lymph/save/model-v5-179.pt'
-    model.load_state_dict(torch.load(model_path)['model'])
+    if args.model != 'normal':
+        model_path = '/data/julia/data_lymph/save/model-v5-179.pt'
+        model.load_state_dict(torch.load(model_path)['model'])
 
-    loss_mse = torch.nn.MSELoss()
+    # loss_mse = torch.nn.MSELoss()
     # loss_point = FocalLoss(1)
-    loss_focal = FocalLoss(2, save_choice=True)
+    # loss_focal = FocalLoss(2, save_choice=True)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 50, 0.1)
 
@@ -63,6 +63,8 @@ def train(args):
 
         model.train()
         train_loss = 0
+        point_loss = 0
+        reg_loss = 0
         batch_step = 0
         for batch in tqdm(train_loader):
             # embed()
@@ -70,20 +72,27 @@ def train(args):
             image = image.type(torch.cuda.FloatTensor)
             # embed()
             point_gt = batch['hmap']['data'].squeeze(1).cuda()
-            bbox_gt = batch['bbox']['data'].squeeze(1).cuda()
+            # bbox_gt = batch['bbox']['data'].squeeze(1).cuda()
+            whd_gt = batch['whd']['data'].squeeze(1).cuda()
+            offset_gt = batch['offset']['data'].squeeze(1).cuda()
+            mask_gt = batch['mask']['data'].squeeze(1).cuda()
 
             optimizer.zero_grad() # clear optimizer parameter in x.grad
 
-            pred_point, pred_bbox = model(image)#.squeeze(1)
+            pred  = model(image)#.squeeze(1)
+            pred_point, pred_whd, pred_offset = pred[0], pred[1], pred[2]
+
             # train_save_point(pred_point)
             # pred_point(b 1 w h d ) pred_bbox(b 2 w h d )
             # embed()
-            loss_1 = loss_mse(pred_point.squeeze(1), point_gt * 800)
+            loss_1 = focal_loss(pred_point.squeeze(1), point_gt * 800)
             # loss_1 = loss_point(pred_point, point_gt)
             # embed()
-            loss_2 = loss_focal(pred_bbox, bbox_gt)
+            loss_2 = 0.1 * reg_l1_loss(pred_whd, whd_gt, mask)
+            loss_3 = reg_l1_loss(pred_offset, offset_gt, mask)
+
             # embed()
-            loss = loss_1 + 100 * loss_2
+            loss = loss_1 + loss_2 + loss_3
             # embed()
 
             loss.backward() # x.grad += dloss / dx
@@ -91,12 +100,14 @@ def train(args):
             batch_step += 1
             # pbar.update(1)
             train_loss += loss.item()
+            point_loss += loss_1.item()
+            reg_loss += loss_2.item() + loss_3.item()
 
         lr_scheduler.step()
         train_loss /= len(train_loader)
 
 
-        with open('./add_segbbox/train_loss.txt', mode='a') as f:
+        with open('./loss/train_loss.txt', mode='a') as f:
             f.write(str(train_loss))
             f.write('\n')
 
@@ -104,7 +115,7 @@ def train(args):
             valid_loss = valid_slidewin(model, args)
             save_dir = '/data/julia/data_lymph/save'
             save(epoch, optimizer, model, save_dir)
-            with open('./add_segbbox/valid_loss.txt', mode='a') as f:
+            with open('./loss/valid_loss.txt', mode='a') as f:
                 f.write(str(valid_loss))
                 f.write('\n')
 
