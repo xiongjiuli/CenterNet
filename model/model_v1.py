@@ -2,9 +2,10 @@ import math
 
 import torch.nn as nn
 from torch import nn
+from IPython import embed
 
 # from nets.hourglass import *
-from resnet50 import resnet50, resnet50_Decoder, resnet50_Head
+from model.resnet50 import resnet50, resnet50_Decoder, resnet50_Head
 
 
 class CenterNet_Resnet50(nn.Module):
@@ -49,7 +50,7 @@ class CenterNet_Resnet50(nn.Module):
         
     def forward(self, x):
         feat = self.backbone(x)
-        embed()
+        # embed()
         return self.head(self.decoder(feat))
     
 if __name__ == '__main__':
