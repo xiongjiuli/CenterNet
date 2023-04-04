@@ -86,7 +86,8 @@ def train(args):
             pred  = model(image)#.squeeze(1)
             pred_point, pred_whd, pred_offset = pred[0], pred[1], pred[2]
             name = batch['name'][0]
-            save_info(name, output_point=pred_point[0], output_offset=pred_offset[0], output_whd=pred_whd[0], mode='training')
+            if batch_step == 0:
+                save_info(name, output_point=pred_point[0], output_offset=pred_offset[0], output_whd=pred_whd[0], mode='training')
             # train_save_point(pred_point)
             # pred_po
             # int(b 1 w h d ) pred_bbox(b 2 w h d )
@@ -113,6 +114,7 @@ def train(args):
             point_loss += loss_1.item()
             reg_loss += loss_3.item()
             whd_loss += loss_2.item()
+            batch_step += 1
 
         lr_scheduler.step()
         train_loss /= len(train_loader)
