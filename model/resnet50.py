@@ -54,7 +54,7 @@ class Bottleneck(nn.Module):
 #   8x8x8x2048的有效特征层
 #-----------------------------------------------------------------#
 class ResNet_50(nn.Module):
-    def __init__(self, block, layers, num_classes=1):
+    def __init__(self, block, layers, num_classes=1):  # ResNet_50(Bottleneck, [3, 4, 6, 3])
         super(ResNet_50, self).__init__()
 
         self.inplanes = 64  # conv1 的输出维度

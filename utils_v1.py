@@ -6,6 +6,7 @@ import torch
 import torchio as tio
 import torch.nn.functional as F
 import numba
+from IPython import embed
 
 
 
@@ -29,7 +30,7 @@ def getNiiPath(path, mode):
 
 
 
-def focal_loss(pred, target, aerfa=2, beta=4 ):
+def focal_loss(pred, target, alpha=2, beta=4 ):
     # * pred he target dimention both the (1, 1, 128, 128, 128)
     # pred = pred.permute(0, 2, 3, 4, 1) # ? 为什么会有这个的一个code
     '''
@@ -52,8 +53,8 @@ def focal_loss(pred, target, aerfa=2, beta=4 ):
     #-------------------------------------------------------------------------#
     #   计算focal loss。难分类样本权重大，易分类样本权重小。
     #-------------------------------------------------------------------------#
-    pos_loss = torch.log(pred) * torch.pow(1 - pred, aerfa) * pos_inds
-    neg_loss = torch.log(1 - pred) * torch.pow(pred, aerfa) * neg_weights * neg_inds
+    pos_loss = torch.log(pred) * torch.pow(1 - pred, alpha) * pos_inds
+    neg_loss = torch.log(1 - pred) * torch.pow(pred, alpha) * neg_weights * neg_inds
     # embed()
     #-------------------------------------------------------------------------#
     #   进行损失的归一化
@@ -86,7 +87,7 @@ def reg_l1_loss(pred, target, mask):
     target = target.permute(0, 2, 3, 4, 1)
     expand_mask = torch.unsqueeze(mask, -1).repeat(1, 1, 1, 1, 3)
     # embed()
-    loss = F.l1_loss(pred * expand_mask, target * expand_mask, reduction='sum')  
+    loss = F.l1_loss(pred * expand_mask, target * expand_mask, reduction='mean')  
     # embed()
     # ？那这个岂不是对那些预测错的是没有penalty的
     loss = loss / (mask.sum() + 1e-4)

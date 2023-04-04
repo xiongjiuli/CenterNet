@@ -13,6 +13,8 @@ from IPython import embed
 import torch.utils.data as data
 import matplotlib.pyplot as plt
 from time import time
+from valid_v1 import save_info
+
 # from valid_v1 import valid_slidewin
 os.environ["CUDA_VISIBLE_DEVICES"] = '3, 4, 5'
 
@@ -46,7 +48,7 @@ def train(args):
     model = torch.nn.parallel.DataParallel(model)#, device_ids=[2, 3, 4])
 
     if args.model != 'normal':
-        model_path = '/data/julia/data_lymph/save/model-v5-179.pt'
+        model_path = '/data/julia/data_lymph/save/model-centerv1-129.pt'
         model.load_state_dict(torch.load(model_path)['model'])
 
     # loss_mse = torch.nn.MSELoss()
@@ -58,7 +60,7 @@ def train(args):
     if args.model == 'normal':
         epoch_range = range(args.epoch)
     else: 
-        epoch_range = range(35, args.epoch)
+        epoch_range = range(130, args.epoch)
     for epoch in tqdm(epoch_range):
 
         model.train()
@@ -67,6 +69,7 @@ def train(args):
         reg_loss = 0
         batch_step = 0
         whd_loss = 0
+        L1loss = torch.nn.L1Loss()
         for batch in tqdm(train_loader):
             # embed()
             image = batch['image']['data'].cuda()
@@ -82,17 +85,22 @@ def train(args):
 
             pred  = model(image)#.squeeze(1)
             pred_point, pred_whd, pred_offset = pred[0], pred[1], pred[2]
-
+            name = batch['name'][0]
+            save_info(name, output_point=pred_point[0], output_offset=pred_offset[0], output_whd=pred_whd[0], mode='training')
             # train_save_point(pred_point)
             # pred_po
             # int(b 1 w h d ) pred_bbox(b 2 w h d )
             # embed()
-            loss_1 = focal_loss(pred_point.cpu(), point_gt.unsqueeze(1))
+            # loss_1 = focal_loss(pred_point.cpu(), point_gt.unsqueeze(1))
+            # # loss_1 = loss_point(pred_point, point_gt)
+            # # embed()
+            # loss_2 = 0.1 * reg_l1_loss(pred_whd.cpu(), whd_gt, mask_gt)
+            # loss_3 = reg_l1_loss(pred_offset.cpu(), offset_gt, mask_gt)
+            loss_1 = L1loss(pred_point.cpu(), point_gt.unsqueeze(1))
             # loss_1 = loss_point(pred_point, point_gt)
             # embed()
-            loss_2 = 0.1 * reg_l1_loss(pred_whd.cpu(), whd_gt, mask_gt)
+            loss_2 = reg_l1_loss(pred_whd.cpu(), whd_gt, mask_gt)
             loss_3 = reg_l1_loss(pred_offset.cpu(), offset_gt, mask_gt)
-
             # embed()
             loss = loss_1 + loss_2 + loss_3
             # embed()
@@ -127,7 +135,8 @@ def train(args):
             f_point.write('\n')
 
         if (epoch + 1) % 10 == 0: # start validation
-            valid_loss = valid_crop(model, args)
+            # valid_loss = valid_crop(model)
+            valid_loss = valid_slidewin(model, save=True)
             save_dir = '/data/julia/data_lymph/save'
             save(epoch, optimizer, model, save_dir)
             with open('./loss/valid_loss.txt', mode='a') as f:

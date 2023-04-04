@@ -58,8 +58,22 @@ class lymphDataset(data.Dataset):
             whd = tio.ScalarImage(tensor=whd_crop, affine=affine),
             offset = tio.ScalarImage(tensor=offset_crop, affine=affine),
             mask = tio.ScalarImage(tensor=mask_crop.unsqueeze(0), affine=affine),
+            name = name,
         )
-        # # augmentation
+
+
+        # * save 
+        # image = tio.ScalarImage(tensor=image_crop.unsqueeze(0), affine=affine)
+        # hmap = tio.ScalarImage(tensor=hmap_crop.unsqueeze(0), affine=affine)
+        # whd = tio.ScalarImage(tensor=whd_crop, affine=affine)
+        # offset = tio.ScalarImage(tensor=offset_crop, affine=affine)
+        # mask = tio.ScalarImage(tensor=mask_crop.unsqueeze(0), affine=affine)
+        # image.save('/data/julia/data_lymph/pred_nii/{}_image_meta.nii'.format(name))
+        # hmap.save('/data/julia/data_lymph/pred_nii/{}_heatmap_meta.nii'.format(name))
+        # whd.save('/data/julia/data_lymph/pred_nii/{}_whd_meta.nii'.format(name))
+        # offset.save('/data/julia/data_lymph/pred_nii/{}_offset_meta.nii'.format(name))
+        # mask.save('/data/julia/data_lymph/pred_nii/{}_mask_meta.nii'.format(name))
+        # # * augmentation
         # augmentation = tio.OneOf({
         #     tio.RandomFlip(axes=(0, 1, 2)) :0.19,
         #     tio.RandomAffine(scales=0.3, degrees=20, translation=30) :0.19,
